@@ -81,7 +81,7 @@ class Viewer(tk.Tk):
         super(Viewer, self).__init__()
         self.origin = np.array([20, 20])
 
-        dir_str=os.path.dirname(os.path.realpath(__file__))+'\\'
+        dir_str=os.path.dirname(os.path.realpath(__file__))+'/'
         self.walls_image=ImageTk.PhotoImage(Image.open(dir_str+'walls.png'))
         self.boxes_image=ImageTk.PhotoImage(Image.open(dir_str+'boxes.png'))
         self.item_fig={}
