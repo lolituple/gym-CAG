@@ -438,7 +438,7 @@ class CrazyArcadeEnv(gym.Env):
             value[0] -= PUNISH
             value[1] -= PUNISH
             done=1
-        return (STATE,value[0],done,None)
+        return (STATE,value[0],done,{})
         
     def get_Map_size(self): # (width,height)
         return (self.width,self.height)
