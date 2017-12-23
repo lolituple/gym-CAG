@@ -200,6 +200,7 @@ class CrazyArcadeEnv(gym.Env):
         self.height=MAZE_H
         self.Map=Map
         self.action_space = spaces.Discrete(6)
+        self.observation_space = spaces.Box(0, 255, [161,207,3])
         super(CrazyArcadeEnv, self).__init__()
         
         self.init_data(Map)
