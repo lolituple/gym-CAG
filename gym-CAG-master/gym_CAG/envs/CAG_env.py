@@ -34,11 +34,11 @@ REWARD_BOMB=200
 PUNISH_PER_ROUND=1
 
 Map=\
-['#o#*#o#*#',
- 'o1o  *o^o',
+['#o#^#o#^#',
+ 'o1o  ^o^o',
  '# # # #o#',
  'o #####^o',
- '#*#####o#',
+ '#^#####o#',
  'oo^oo^  o',
  '#oo^#oo0#'
 ]
@@ -200,7 +200,7 @@ class CrazyArcadeEnv(gym.Env):
         self.height=MAZE_H
         self.Map=Map
         self.action_space = spaces.Discrete(6)
-        self.observation_space = spaces.Box(0, 255, [161,207,3])
+        self.observation_space = spaces.Box(0, 1, [7,9,14])
         super(CrazyArcadeEnv, self).__init__()
         
         self.init_data(Map)
@@ -214,7 +214,7 @@ class CrazyArcadeEnv(gym.Env):
     
     def _reset(self):
         self.__init__()
-        return gym_CAG.envs.state_creator.Get_State(self)
+        return gym_CAG.envs.state_creator.Get_Simple_State(self)
         
     def init_data(self,Map):
         self.bombs_cnt=0
@@ -417,7 +417,7 @@ class CrazyArcadeEnv(gym.Env):
                     item_cnt+=1
         #done=((len(self.boxes_xyk)==0) and (item_cnt==0))
 
-        STATE = gym_CAG.envs.state_creator.Get_State(self)
+        STATE = gym_CAG.envs.state_creator.Get_Simple_State(self)
         self.accu_value[0] += value[0]
         self.accu_value[1] += value[1]
 

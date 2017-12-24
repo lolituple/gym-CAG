@@ -106,3 +106,35 @@ def Get_State(env):
     Text_player(players[1].xy, players[1].max_boom_num-players[1].boom_num, 1)
 
     return result
+def Get_Simple_State(env):
+    '''
+    state
+    -------------
+    wall,box,player0,player1,item*,item^,bomb(0-9)
+    -------------
+    '''
+    result=np.zeros((env.height,env.width,14))
+    boxes_xy=[]
+    for box in env.boxes_xyk:
+        boxes_xy.append((box[0],box[1]))
+    for x in range(0,env.width):
+        for y in range(0,env.height):
+            if (env.maze[x][y]=='#'):
+                result[y][x][0]=1
+            if (x,y) in boxes_xy:
+                result[y][x][1]=1
+            else:
+                if(env.maze[x][y]=='*'):
+                    result[y][x][4]=1
+                if(env.maze[x][y]=='^'):
+                    result[y][x][5]=1
+    
+    for i in range(env.bombs_cnt):
+        x,y=env.bombs_xy[i]
+        result[y][x][6+env.bombs_data[i][0]]=1
+    
+    for player_id in range(2):
+        x,y=env.players[player_id].xy
+        result[y][x][2+player_id]=1
+    return result
+    
