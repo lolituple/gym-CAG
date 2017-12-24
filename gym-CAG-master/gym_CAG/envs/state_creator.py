@@ -1,7 +1,6 @@
 import os
-import cv2
 import numpy as np
-
+'''
 ZiTi=0.3
 
 def Resize(img, flag=0):
@@ -106,14 +105,15 @@ def Get_State(env):
     Text_player(players[1].xy, players[1].max_boom_num-players[1].boom_num, 1)
 
     return result
+'''
 def Get_Simple_State(env):
     '''
     state
     -------------
-    wall,box,player0,player1,item*,item^,bomb(0-9)
+    wall,box,item*,item^,player0(bomb),player0(distance),player1(bomb),player1(distance),bomb time(0-9),bomb distance(0-9)
     -------------
     '''
-    result=np.zeros((env.height,env.width,14))
+    result=np.zeros((env.height,env.width,28))
     boxes_xy=[]
     for box in env.boxes_xyk:
         boxes_xy.append((box[0],box[1]))
@@ -125,16 +125,18 @@ def Get_Simple_State(env):
                 result[y][x][1]=1
             else:
                 if(env.maze[x][y]=='*'):
-                    result[y][x][4]=1
+                    result[y][x][2]=1
                 if(env.maze[x][y]=='^'):
-                    result[y][x][5]=1
+                    result[y][x][3]=1
     
     for i in range(env.bombs_cnt):
         x,y=env.bombs_xy[i]
-        result[y][x][6+env.bombs_data[i][0]]=1
+        result[y][x][8+env.bombs_data[i][0]]=1
+        result[y][x][18+env.bombs_data[i][1]]=1
     
     for player_id in range(2):
         x,y=env.players[player_id].xy
-        result[y][x][2+player_id]=1
+        result[y][x][4+player_id*2]=env.players[player_id].max_boom_num-env.players[player_id].boom_num
+        result[y][x][4+player_id*2+1]=env.players[player_id].boom_r
     return result
     

@@ -200,7 +200,7 @@ class CrazyArcadeEnv(gym.Env):
         self.height=MAZE_H
         self.Map=Map
         self.action_space = spaces.Discrete(6)
-        self.observation_space = spaces.Box(0, 1, [7,9,14])
+        self.observation_space = spaces.Box(0, 10, [7,9,28])
         super(CrazyArcadeEnv, self).__init__()
         
         self.init_data(Map)
@@ -277,6 +277,8 @@ class CrazyArcadeEnv(gym.Env):
             if(x=='b'):return 4
             if(x=='s'):return 5
         actions=[(0,actions),(1,ch(baseline.choose_action(self,1)))]
+        if(actions[1][1]==4):
+            actions[0],actions[1]=actions
         #agent move
         for A in actions:
             player_id=A[0]

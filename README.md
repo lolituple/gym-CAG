@@ -4,7 +4,7 @@
 
 不要把该文件放在非英文路径下!
 
-需要tkinter, opencv, numpy, gym库的支持
+需要tkinter, numpy, gym库的支持
 
 # Installation
 
