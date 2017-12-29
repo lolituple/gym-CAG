@@ -110,10 +110,10 @@ def Get_Simple_State(env):
     '''
     state
     -------------
-    wall,box,item*,item^,player0(bomb),player0(distance),player1(bomb),player1(distance),bomb time(0-9),bomb distance(0-9)
+    wall,box,item*,item^,player0(bomb)[0..5],bomb time[0-9]
     -------------
     '''
-    result=np.zeros((env.height,env.width,28))
+    result=np.zeros((env.height,env.width,20))
     boxes_xy=[]
     for box in env.boxes_xyk:
         boxes_xy.append((box[0],box[1]))
@@ -128,15 +128,56 @@ def Get_Simple_State(env):
                     result[y][x][2]=1
                 if(env.maze[x][y]=='^'):
                     result[y][x][3]=1
-    
+    '''
     for i in range(env.bombs_cnt):
         x,y=env.bombs_xy[i]
         result[y][x][8+env.bombs_data[i][0]]=1
         result[y][x][18+env.bombs_data[i][1]]=1
+    '''
+    x,y=env.players[0].xy
+    bnum=env.players[0].max_boom_num-env.players[0].boom_num
+    for i in range(bnum+1):
+        result[y][x][4+i]=1
     
-    for player_id in range(2):
-        x,y=env.players[player_id].xy
-        result[y][x][4+player_id*2]=env.players[player_id].max_boom_num-env.players[player_id].boom_num
-        result[y][x][4+player_id*2+1]=env.players[player_id].boom_r
+    #boom explosion
+    maze=env.maze
+    bfs=[]
+    for i in range(env.bombs_cnt):
+        x,y=env.bombs_xy[i]
+        dd=[(0,1),(0,-1),(-1,0),(1,0),(0,0)]
+        for d in dd:
+            xx,yy=x,y
+            xx+=d[0]
+            yy+=d[1]
+            if(xx<0 or yy<0 or xx>=env.width or yy>=env.height or maze[xx][yy]=='#'):
+                break
+            result[yy][xx][10+env.bombs_data[i][0]]=1
+        if(env.bombs_data[i][0]==0):
+            bfs.append((env.bombs_xy[i],env.bombs_data[i][2]))
+        
+    if(len(bfs)!=0):
+        l=0
+        r=len(bfs)-1
+        dd=[(0,1),(0,-1),(-1,0),(1,0)]
+        while(l<=r):
+            ((x,y),player_id)=bfs[l]
+            result[y][x][10]=1
+            l+=1
+            for d in dd:
+                xx,yy=x,y
+                for j in range(env.maze_[x][y]):
+                    xx+=d[0]
+                    yy+=d[1]
+                    if(xx<0 or yy<0 or xx>=env.width or yy>=env.height or maze[xx][yy]=='#'):
+                        break
+                    result[yy][xx][10]=1
+                    if(maze[xx][yy]=='b'):
+                        for i in range(env.bombs_cnt):
+                            if(env.bombs_xy[i]==(xx,yy)):
+                                r+=1
+                                bfs.append(((xx,yy),env.bombs_data[i][2]))
+                        maze[xx][yy]=' '
+                    if(maze[xx][yy]=='o'):
+                        break
     return result
     

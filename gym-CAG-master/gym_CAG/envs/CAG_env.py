@@ -14,25 +14,41 @@ from gym_CAG.envs.baseline import baseline
 
 #import atari_py
 
+'''
+Debug
+'''
+
+PRINT_ACTIONS = False
+BASELINE_FIX = True
+
+'''
+Fixed
+'''
 UNIT = 40   # pixels
 MAZE_H = -1  # grid height, given by initializing
 MAZE_W = -1  # grid width, given by initializing
-
-
-'''
-decide
-'''
 BOOM_R = 1   # boom explosion rage, from x to x+BOOM_R
-BOOM_T = 5   # time until explosion
+BOOM_T = 6   # time until explosion
 BOOM_N = 1   # initial number of boom
-GAME_ROUND = 50 #maximum game ronud
-REWARD_BOX = 10 #reward of box
-REWARD_ITEM = 5  #reward of item
-REWARD_KILL =100 #reawrd of kill opponent
-PUNISH = 50 #punishment
-REWARD_BOMB=200
-PUNISH_PER_ROUND=1
 
+'''
+Dynamic
+'''
+STAGE = 0 #trainning stage
+LAST_STAGE = -1
+LAST_EDIT = -1 #iterations
+STAGE_CNT = 0
+COUNT = 0
+GAME_ROUND = 50 #maximum game ronud
+REWARD_BOX = -1 #reward of box
+REWARD_ITEM = -1  #reward of item
+REWARD_KILL = (-1,-1) #reawrd of kill opponent
+PUNISH = -1 #punishment
+REWARD_BOMB=-1
+REWARD_BOMB_BOX=-1
+PUNISH_PER_ROUND=-1
+
+'''
 Map=\
 ['#o#^#o#^#',
  'o1o  ^o^o',
@@ -42,6 +58,64 @@ Map=\
  'oo^oo^  o',
  '#oo^#oo0#'
 ]
+'''
+Map=\
+['#o  o   o',
+ 'o    #o# ',
+ '#o  #^ # ',
+ ' o #o###^',
+ ' o   #  o',
+ '# #  #o##',
+ '1#ooo#  0'
+]
+
+def para_edit(now_iter,now_rewmean,now_lenmean):
+    global STAGE
+    global LAST_STAGE
+    global LAST_EDIT
+    global STAGE_CNT
+    global COUNT
+    global GAME_ROUND       #maximum game ronud
+    global REWARD_BOX       #reward of box
+    global REWARD_ITEM      #reward of item
+    global REWARD_KILL      #reawrd of kill opponent (player0,player1)
+    global PUNISH           #punishment
+    global REWARD_BOMB      #reward for put a bomb
+    global REWARD_BOMB_BOX  #reward for put a bomb beside a box
+    global PUNISH_PER_ROUND #punishment per round
+    
+    print('now_stage:',STAGE,'count:',COUNT,'stage_count',STAGE_CNT)
+    COUNT += 1
+    
+    if now_iter==0:
+        STAGE=0
+        LAST_STAGE = -1
+        GAME_ROUND = 500
+        REWARD_BOX = 10
+        STAGE_CNT = 0
+        REWARD_ITEM = 5
+        REWARD_KILL = (100,1000)
+        PUNISH = 50
+        REWARD_BOMB = 200
+        REWARD_BOMB_BOX = 200
+        PUNISH_PER_ROUND = 1
+        return
+    
+    if STAGE==0:
+        if (now_lenmean > GAME_ROUND * 0.8) and (now_rewmean > 1000):
+            STAGE_CNT += 1
+        else:
+            STAGE_CNT = max( STAGE_CNT-5 , 0 )
+        if STAGE_CNT >= 10:
+            STAGE = 1
+            STAGE_CNT = 0
+            COUNT = 0
+            return
+    
+    if STAGE==1:
+        REWARD_BOMB = max(REWARD_BOMB-1 , 20)
+        REWARD_BOX = min(REWARD_BOX+1 , 200)
+        if (COUNT%5==0) and (GAME_ROUND+1 <= now_lenmean+5): GAME_ROUND = min(GAME_ROUND+1 , 200)
 
 class player:
     def __init__(self):
@@ -189,6 +263,7 @@ class CrazyArcadeEnv(gym.Env):
     viewer=None
     def __init__(self):
         #initialize
+        #print('_________________env_init_________________')
         self.accu_value=[0]*2
         self.remain_round=GAME_ROUND
         self.origin_map=Map
@@ -200,10 +275,17 @@ class CrazyArcadeEnv(gym.Env):
         self.height=MAZE_H
         self.Map=Map
         self.action_space = spaces.Discrete(6)
-        self.observation_space = spaces.Box(0, 10, [7,9,28])
+        self.observation_space = spaces.Box(0, 1, [7,9,20])
         super(CrazyArcadeEnv, self).__init__()
         
         self.init_data(Map)
+    
+    def _seed(self,A):
+        now_iter,now_rewmean,now_lenmean=A
+        global LAST_EDIT
+        if LAST_EDIT != now_iter:
+            LAST_EDIT = now_iter
+            para_edit(now_iter,now_rewmean,now_lenmean)
     
     def _render(self, mode='human', close=False):
         #time.sleep(0.1)
@@ -276,7 +358,12 @@ class CrazyArcadeEnv(gym.Env):
             if(x=='d'):return 3
             if(x=='b'):return 4
             if(x=='s'):return 5
-        actions=[(0,actions),(1,ch(baseline.choose_action(self,1)))]
+        if BASELINE_FIX:
+            actions=[(0,actions),(1,ch('s'))]
+        else:
+            actions=[(0,actions),(1,ch(baseline.choose_action(self,1)))]
+        if PRINT_ACTIONS:
+            print(actions)
         if(actions[1][1]==4):
             actions[0],actions[1]=actions
         #agent move
@@ -311,6 +398,12 @@ class CrazyArcadeEnv(gym.Env):
                     self.maze[last_xy[0]][last_xy[1]]='b'
                     self.maze_[last_xy[0]][last_xy[1]]=max(self.maze_[last_xy[0]][last_xy[1]],self.players[player_id].boom_r)
                     value[player_id] += REWARD_BOMB
+                    now_x,now_y=self.players[player_id].xy
+                    if (now_x>0) and (self.maze[now_x-1][now_y]=='o'): value[player_id] += REWARD_BOMB_BOX
+                    if (now_x<MAZE_W-1) and (self.maze[now_x+1][now_y]=='o'): value[player_id] += REWARD_BOMB_BOX
+                    if (now_y>0) and (self.maze[now_x][now_y-1]=='o'): value[player_id] += REWARD_BOMB_BOX
+                    if (now_y<MAZE_H-1) and (self.maze[now_x][now_y+1]=='o'): value[player_id] += REWARD_BOMB_BOX
+                    
             else:
                 # update position
                 new_xy=(last_xy[0]+base_action[0],last_xy[1]+base_action[1])
@@ -404,12 +497,13 @@ class CrazyArcadeEnv(gym.Env):
                     self.inpulse[i][j]=1
                 else: self.inpulse[i][j]=0
         done=0
+
         #判断死亡
         for i in range(2):
             x,y=self.players[i].xy
             if(self.temp[x][y]==tt):
-                value[1-i] += REWARD_KILL
-                value[i] -= REWARD_KILL
+                value[1-i] += REWARD_KILL[i]
+                value[i] -= REWARD_KILL[i]
                 done=1
         
         item_cnt=0
